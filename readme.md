@@ -21,17 +21,19 @@ gomitmproxy是想用golang语言实现[mitmproxy](https://mitmproxy.org/)，主�
 * http代理
 
 ```bash
-    gomitmproxy 
+gomitmproxy 
 ```
-    不带任何参数，表示http代理，默认端口8080,更改端口用 -port 
+不带任何参数，表示http代理，默认端口8080,更改端口用 -port 
 
 * http抓包
 
 ```bash
-    gomitmproxy -m 
+gomitmproxy -m 
 ```
 
-    加-m参数，表示抓取http请求和响应
+![fetch http](https://raw.githubusercontent.com/sheepbao/gomitmproxy/develop/goproxy.png)
+
+加 -m 参数，表示抓取http请求和响应
 
 * http代理科学上网
 
