@@ -3,12 +3,14 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -168,11 +170,17 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 }
 
 func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	if req.Method == "CONNECT" {
-		hw.https = true
-		hw.InterceptHTTPs(resp, req)
+
+	raddr := *hw.MyConfig.Raddr
+	if len(raddr) != 0 {
+		hw.Forward(resp, req, raddr)
 	} else {
-		hw.DumpHTTPAndHTTPs(resp, req)
+		if req.Method == "CONNECT" {
+			hw.https = true
+			hw.InterceptHTTPs(resp, req)
+		} else {
+			hw.DumpHTTPAndHTTPs(resp, req)
+		}
 	}
 }
 
@@ -197,9 +205,7 @@ func (hw *HandlerWrapper) InterceptHTTPs(resp http.ResponseWriter, req *http.Req
 	tlsConfig := copyTlsConfig(hw.tlsConfig.ServerTLSConfig)
 	tlsConfig.Certificates = []tls.Certificate{*cert}
 	tlsConnIn := tls.Server(connIn, tlsConfig)
-
 	listener := &mitmListener{tlsConnIn}
-
 	handler := http.HandlerFunc(func(resp2 http.ResponseWriter, req2 *http.Request) {
 		req2.URL.Scheme = "https"
 		req2.URL.Host = req2.Host
@@ -210,14 +216,48 @@ func (hw *HandlerWrapper) InterceptHTTPs(resp http.ResponseWriter, req *http.Req
 	go func() {
 		err = http.Serve(listener, handler)
 		if err != nil && err != io.EOF {
-			log.Printf("Error serving mitm'ed connection: %s", err)
+			logger.Printf("Error serving mitm'ed connection: %s", err)
 		}
 	}()
 
 	connIn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 }
 
-func Mitm(conf *Cfg, tlsConfig *TlsConfig) (*HandlerWrapper, error) {
+func (hw *HandlerWrapper) Forward(resp http.ResponseWriter, req *http.Request, raddr string) {
+	connIn, _, err := resp.(http.Hijacker).Hijack()
+	connOut, err := net.Dial("tcp", raddr)
+	if err != nil {
+		logger.Println("dial tcp error", err)
+	}
+
+	err = connectProxyServer(connOut, raddr)
+	if err != nil {
+		logger.Println("connectProxyServer error:", err)
+	}
+
+	if req.Method == "CONNECT" {
+		b := []byte("HTTP/1.1 200 Connection Established\r\n" +
+			"Proxy-Agent: gomitmproxy/" + Version + "\r\n\r\n")
+		_, err := connIn.Write(b)
+		if err != nil {
+			logger.Println("Write Connect err:", err)
+			return
+		}
+	} else {
+		req.Header.Del("Proxy-Connection")
+		req.Header.Set("Connection", "Keep-Alive")
+		if err = req.Write(connOut); err != nil {
+			logger.Println("send to server err", err)
+			return
+		}
+	}
+	err = Transport(connIn, connOut)
+	if err != nil {
+		log.Println("trans error ", err)
+	}
+}
+
+func InitConfig(conf *Cfg, tlsConfig *TlsConfig) (*HandlerWrapper, error) {
 	hw := &HandlerWrapper{
 		MyConfig:     conf,
 		tlsConfig:    tlsConfig,
@@ -242,4 +282,51 @@ func respBadGateway(resp http.ResponseWriter, msg string) {
 	log.Println(msg)
 	resp.WriteHeader(502)
 	resp.Write([]byte(msg))
+}
+
+//两个io口的连接
+func Transport(conn1, conn2 net.Conn) (err error) {
+	rChan := make(chan error, 1)
+	wChan := make(chan error, 1)
+
+	go MyCopy(conn1, conn2, wChan)
+	go MyCopy(conn2, conn1, rChan)
+
+	select {
+	case err = <-wChan:
+	case err = <-rChan:
+	}
+
+	return
+}
+
+func MyCopy(src io.Reader, dst io.Writer, ch chan<- error) {
+	_, err := io.Copy(dst, src)
+	ch <- err
+}
+
+func connectProxyServer(conn net.Conn, addr string) error {
+
+	req := &http.Request{
+		Method:     "CONNECT",
+		URL:        &url.URL{Host: addr},
+		Host:       addr,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(http.Header),
+	}
+	req.Header.Set("Proxy-Connection", "keep-alive")
+
+	if err := req.Write(conn); err != nil {
+		return err
+	}
+
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(resp.Status)
+	}
+	return nil
 }

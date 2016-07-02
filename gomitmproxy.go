@@ -49,9 +49,9 @@ func main() {
 func gomitmproxy(conf *Cfg) {
 	tlsConfig := NewTlsConfig("gomitmproxy-ca-pk.pem", "gomitmproxy-ca-cert.pem", "", "")
 
-	handler, err := Mitm(conf, tlsConfig)
+	handler, err := InitConfig(conf, tlsConfig)
 	if err != nil {
-		logger.Fatalf("Unable to start http proxy: %s", err)
+		logger.Fatalf("InitConfig error: %s", err)
 	}
 
 	server := &http.Server{
@@ -66,6 +66,7 @@ func gomitmproxy(conf *Cfg) {
 		log.Printf("proxy listening port:%s", *conf.Port)
 
 		if *conf.Tls {
+			log.Println("ListenAndServeTLS")
 			err = server.ListenAndServeTLS("gomitmproxy-ca-cert.pem", "gomitmproxy-ca-pk.pem")
 		} else {
 			log.Println("ListenAndServe")
