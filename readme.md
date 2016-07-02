@@ -1,6 +1,7 @@
 # gomitmproxy
 
-gomitmproxy是想用golang语言实现的[mitmproxy](https://mitmproxy.org/)，主要实现http代理，目前只实现了http代理和https抓包功能，差距甚远，加油。
+gomitmproxy是想用golang语言实现的[mitmproxy](https://mitmproxy.org/)，主要实现http代理，目前实现了http代理和https抓包功能，差距甚远，加油。
+
 
 ## 可以用来干嘛？
 
@@ -11,9 +12,9 @@ gomitmproxy是想用golang语言实现的[mitmproxy](https://mitmproxy.org/)，�
 ## 安装使用
 
 ```bash
-git clone https://github.com/sheepbao/gomitmproxy.git
-cd gomitmproxy 
-go build 
+    git clone https://github.com/sheepbao/gomitmproxy.git
+    cd gomitmproxy 
+    go build 
 ```
 
 ## 例子
@@ -23,7 +24,7 @@ go build
 ```bash
 gomitmproxy 
 ```
-    不带任何参数，表示http代理，默认端口8080,更改端口用 -port 
+不带任何参数，表示http代理，默认端口8080,更改端口用 -port 
 
 * http抓包
 
