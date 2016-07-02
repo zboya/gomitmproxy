@@ -1,11 +1,12 @@
 # gomitmproxy
 
-gomitmproxy是想用golang语言实现[mitmproxy](https://mitmproxy.org/)，主要实现http代理，目前只实现了http代理和http抓包功能，差距甚远，加油。
+gomitmproxy是想用golang语言实现的[mitmproxy](https://mitmproxy.org/)，主要实现http代理，目前实现了http代理和https抓包功能，差距甚远，加油。
+
 
 ## 可以用来干嘛？
 
 * http代理
-* http抓包
+* http和https抓包
 * 科学上网
 
 ## 安装使用
