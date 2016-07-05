@@ -8,6 +8,14 @@ gomitmproxy是想用golang语言实现的[mitmproxy](https://mitmproxy.org/)，�
 * http和https抓包
 * 科学上网
 
+## 将来要实现的功能
+
+* 修改http(s)请求
+* 重复请求
+* 同时监听多端口
+* 支持socks5、websocket等协议
+* 界面支持终端和网页两种形式
+
 ## 安装使用
 
 ```bash
@@ -52,7 +60,9 @@ gomitmproxy -m
 
 ![proxy](https://raw.githubusercontent.com/sheepbao/gomitmproxy/master/proxy.png) 
 
+## 最后
 
+欢迎star和fork，一起学习交流。
 ## License
 
 The 3-clause BSD License  
