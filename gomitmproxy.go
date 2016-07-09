@@ -59,7 +59,6 @@ func gomitmproxy(conf *Cfg) {
 		Handler:      handler,
 		ReadTimeout:  1 * time.Hour,
 		WriteTimeout: 1 * time.Hour,
-		TLSConfig:    tlsConfig.ServerTLSConfig,
 	}
 
 	go func() {
