@@ -121,7 +121,14 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 		connOut, err := net.DialTimeout("tcp", host, time.Second*30)
 		if err != nil {
 			logger.Println("dial to", host, "error:", err)
+			return
 		}
+
+		if err = req.Write(connOut); err != nil {
+			logger.Println("send to server error", err)
+			return
+		}
+
 		respOut, err = http.ReadResponse(bufio.NewReader(connOut), req)
 		if err != nil && err != io.EOF {
 			logger.Println("read response error:", err)
@@ -136,9 +143,11 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 
 		if err != nil {
 			logger.Panicln("tls dial to", host, "error:", err)
+			return
 		}
 		if err = req.Write(connOut); err != nil {
 			logger.Println("send to server error", err)
+			return
 		}
 
 		respOut, err = http.ReadResponse(bufio.NewReader(connOut), req)
@@ -179,6 +188,7 @@ func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 			hw.https = true
 			hw.InterceptHTTPs(resp, req)
 		} else {
+			hw.https = false
 			hw.DumpHTTPAndHTTPs(resp, req)
 		}
 	}
