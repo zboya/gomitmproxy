@@ -1,6 +1,3 @@
-// This example shows a proxy server that uses go-mitm to man-in-the-middle
-// HTTPS connections opened with CONNECT requests
-
 package main
 
 import (
