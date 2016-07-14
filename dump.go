@@ -32,10 +32,6 @@ func httpDump(req *http.Request, resp *http.Response) {
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
 	}
-	fmt.Println(Green("Response:"))
-	for headerName, headerContext := range resp.Header {
-		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
-	}
 	if req.Method == "POST" {
 		fmt.Println(Green("URLEncoded form"))
 		err := req.ParseForm()
@@ -51,6 +47,11 @@ func httpDump(req *http.Request, resp *http.Response) {
 		}
 
 	}
+	fmt.Println(Green("Response:"))
+	for headerName, headerContext := range resp.Header {
+		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
+	}
+
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		logger.Println("func httpDump read resp body err:", err)
