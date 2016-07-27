@@ -179,7 +179,11 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 }
 
 func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
 
+	if err != nil {
+		logger.Println("parseForm error:", err)
+	}
 	raddr := *hw.MyConfig.Raddr
 	if len(raddr) != 0 {
 		hw.Forward(resp, req, raddr)

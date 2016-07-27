@@ -34,16 +34,9 @@ func httpDump(req *http.Request, resp *http.Response) {
 	}
 	if req.Method == "POST" {
 		fmt.Println(Green("URLEncoded form"))
-		err := req.ParseForm()
-		fmt.Printf("%#v\n", req.Form)
-		fmt.Printf("%#v\n", req.PostForm)
 
-		if err != nil {
-			logger.Println("parseForm error:", err)
-		} else {
-			for k, v := range req.Form {
-				fmt.Printf("%s: %s\n", Blue(k), v)
-			}
+		for k, v := range req.Form {
+			fmt.Printf("%s: %s\n", Blue(k), v)
 		}
 
 	}
