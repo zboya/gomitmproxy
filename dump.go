@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-func httpDump(req *http.Request, resp *http.Response) {
+func httpDump(reqDump []byte, resp *http.Response) {
 	defer resp.Body.Close()
 	var respStatusStr string
 	respStatus := resp.StatusCode
@@ -27,19 +27,33 @@ func httpDump(req *http.Request, resp *http.Response) {
 	case 5:
 		respStatusStr = Red("<--" + strconv.Itoa(respStatus))
 	}
-	fmt.Println(Green("Request:"))
-	fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
+	fmt.Println(Green("Request:"), respStatusStr)
+	ParseReq(reqDump)
+	/*req, _ := ParseReq(reqDump)
+	for k, v := range req {
+		fmt.Println(k, ":::::", v)
+	}*/
+	/*fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
-	}
-	if req.Method == "POST" {
+	}*/
+	/*if req.Method == "POST" {
 		fmt.Println(Green("URLEncoded form"))
 
-		for k, v := range req.Form {
+		err := req.ParseForm()
+		if err != nil {
+			logger.Println("parseForm error:", err)
+		} else {
+			for k, v := range req.Form {
+				fmt.Printf("%s: %s\n", Blue(k), v)
+			}
+		}
+		values, _ := ParsePostValues(reqDump)
+		for k, v := range values {
 			fmt.Printf("%s: %s\n", Blue(k), v)
 		}
 
-	}
+	}*/
 	fmt.Println(Green("Response:"))
 	for headerName, headerContext := range resp.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
@@ -76,4 +90,9 @@ func httpDump(req *http.Request, resp *http.Response) {
 	}
 
 	fmt.Printf("%s%s%s\n", Black("####################"), Cyan("END"), Black("####################"))
+}
+
+func ParseReq(b []byte) error {
+	str := string(b)
+
 }

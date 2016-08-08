@@ -102,6 +102,10 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	req.Header.Set("Connection", "Keep-Alive")
 
 	// handle connection
+	reqDump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		logger.Println("DumpRequest error ", err)
+	}
 	connIn, _, err := resp.(http.Hijacker).Hijack()
 	if err != nil {
 		logger.Println("hijack error:", err)
@@ -173,17 +177,13 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	}
 
 	if *hw.MyConfig.Monitor {
-		go httpDump(req, respOut)
+		go httpDump(reqDump, respOut)
 	}
 
 }
 
 func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	err := req.ParseForm()
 
-	if err != nil {
-		logger.Println("parseForm error:", err)
-	}
 	raddr := *hw.MyConfig.Raddr
 	if len(raddr) != 0 {
 		hw.Forward(resp, req, raddr)
@@ -344,3 +344,22 @@ func connectProxyServer(conn net.Conn, addr string) error {
 	}
 	return nil
 }
+
+/*func ReadNotDrain(r *http.Request) (content []byte, err error) {
+	content, err = ioutil.ReadAll(r.Body)
+	r.Body = io.ReadCloser(bytes.NewBuffer(content))
+	return
+}
+
+func ParsePostValues(req *http.Request) (url.Values, error) {
+	c, err := ReadNotDrain(req)
+	if err != nil {
+		return nil, err
+	}
+	values, err := url.ParseQuery(string(c))
+	if err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+*/
