@@ -31,6 +31,7 @@ func httpDump(reqDump []byte, resp *http.Response) {
 	fmt.Println(Green("Request:"), respStatusStr)
 	req, _ := ParseReq(reqDump)
 	fmt.Printf("%s %s %s\n", Blue(req.Method), req.Host+req.RequestURI, respStatusStr)
+	fmt.Printf("%s %s\n", Blue("RemoteAddr:"), req.RemoteAddr)
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
 	}
