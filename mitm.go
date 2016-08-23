@@ -101,7 +101,17 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	req.Header.Del("Proxy-Connection")
 	req.Header.Set("Connection", "Keep-Alive")
 
+	var reqDump []byte
+	var err error
+	ch := make(chan bool)
 	// handle connection
+	go func() {
+		reqDump, err = httputil.DumpRequestOut(req, true)
+		ch <- true
+	}()
+	if err != nil {
+		logger.Println("DumpRequest error ", err)
+	}
 	connIn, _, err := resp.(http.Hijacker).Hijack()
 	if err != nil {
 		logger.Println("hijack error:", err)
@@ -173,7 +183,10 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	}
 
 	if *hw.MyConfig.Monitor {
-		go httpDump(req, respOut)
+		<-ch
+		go httpDump(reqDump, respOut)
+	} else {
+		<-ch
 	}
 
 }
@@ -340,3 +353,22 @@ func connectProxyServer(conn net.Conn, addr string) error {
 	}
 	return nil
 }
+
+/*func ReadNotDrain(r *http.Request) (content []byte, err error) {
+	content, err = ioutil.ReadAll(r.Body)
+	r.Body = io.ReadCloser(bytes.NewBuffer(content))
+	return
+}
+
+func ParsePostValues(req *http.Request) (url.Values, error) {
+	c, err := ReadNotDrain(req)
+	if err != nil {
+		return nil, err
+	}
+	values, err := url.ParseQuery(string(c))
+	if err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+*/

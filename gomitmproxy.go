@@ -31,8 +31,12 @@ func main() {
 	conf.Log = flag.String("log", "./error.log", "log file path")
 	conf.Monitor = flag.Bool("m", false, "monitor mode")
 	conf.Tls = flag.Bool("tls", false, "tls connect")
+	help := flag.Bool("h", false, "help")
 	flag.Parse()
 
+	if *help {
+		flag.PrintDefaults()
+	}
 	var err error
 	logFile, err = os.Create(*conf.Log)
 	if err != nil {
