@@ -6,6 +6,7 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -28,32 +29,38 @@ func httpDump(reqDump []byte, resp *http.Response) {
 		respStatusStr = Red("<--" + strconv.Itoa(respStatus))
 	}
 	fmt.Println(Green("Request:"), respStatusStr)
-	ParseReq(reqDump)
-	/*req, _ := ParseReq(reqDump)
-	for k, v := range req {
-		fmt.Println(k, ":::::", v)
-	}*/
-	/*fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
+	req, _ := ParseReq(reqDump)
+	// for k, v := range req {
+	// 	fmt.Println(k, ":::::", v)
+	// }
+	fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
-	}*/
-	/*if req.Method == "POST" {
+	}
+
+	fmt.Printf("req:---->%#v\n", req)
+	if req.Method == "POST" {
 		fmt.Println(Green("URLEncoded form"))
-
-		err := req.ParseForm()
+		fmt.Println(reqDump)
+		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
-			logger.Println("parseForm error:", err)
-		} else {
-			for k, v := range req.Form {
-				fmt.Printf("%s: %s\n", Blue(k), v)
-			}
+			fmt.Println("readall ", err)
 		}
-		values, _ := ParsePostValues(reqDump)
-		for k, v := range values {
-			fmt.Printf("%s: %s\n", Blue(k), v)
-		}
+		fmt.Println(string(body))
+		// err := req.ParseForm()
+		// if err != nil {
+		// 	logger.Println("parseForm error:", err)
+		// } else {
+		// 	for k, v := range req.Form {
+		// 		fmt.Printf("%s: %s\n", Blue(k), v)
+		// 	}
+		// }
+		// values, _ := ParsePostValues(reqDump)
+		// for k, v := range values {
+		// 	fmt.Printf("%s: %s\n", Blue(k), v)
+		// }
 
-	}*/
+	}
 	fmt.Println(Green("Response:"))
 	for headerName, headerContext := range resp.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
@@ -92,7 +99,13 @@ func httpDump(reqDump []byte, resp *http.Response) {
 	fmt.Printf("%s%s%s\n", Black("####################"), Cyan("END"), Black("####################"))
 }
 
-func ParseReq(b []byte) error {
-	str := string(b)
-
+func ParseReq(b []byte) (*http.Request, error) {
+	// func ReadRequest(b *bufio.Reader) (req *Request, err error) { return readRequest(b, deleteHostHeader) }
+	fmt.Println(string(b))
+	fmt.Println("-----------------------")
+	var buf io.ReadWriter
+	buf = new(bytes.Buffer)
+	buf.Write(b)
+	bufr := bufio.NewReader(buf)
+	return http.ReadRequest(bufr)
 }
