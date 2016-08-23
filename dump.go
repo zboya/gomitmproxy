@@ -30,36 +30,21 @@ func httpDump(reqDump []byte, resp *http.Response) {
 	}
 	fmt.Println(Green("Request:"), respStatusStr)
 	req, _ := ParseReq(reqDump)
-	// for k, v := range req {
-	// 	fmt.Println(k, ":::::", v)
-	// }
-	fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
+	fmt.Printf("%s %s %s\n", Blue(req.Method), req.Host+req.RequestURI, respStatusStr)
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
 	}
 
-	fmt.Printf("req:---->%#v\n", req)
 	if req.Method == "POST" {
-		fmt.Println(Green("URLEncoded form"))
-		fmt.Println(reqDump)
-		body, err := ioutil.ReadAll(req.Body)
+		fmt.Println(Green("POST Param:"))
+		err := req.ParseForm()
 		if err != nil {
-			fmt.Println("readall ", err)
+			logger.Println("parseForm error:", err)
+		} else {
+			for k, v := range req.Form {
+				fmt.Printf("\t%s: %s\n", Blue(k), v)
+			}
 		}
-		fmt.Println(string(body))
-		// err := req.ParseForm()
-		// if err != nil {
-		// 	logger.Println("parseForm error:", err)
-		// } else {
-		// 	for k, v := range req.Form {
-		// 		fmt.Printf("%s: %s\n", Blue(k), v)
-		// 	}
-		// }
-		// values, _ := ParsePostValues(reqDump)
-		// for k, v := range values {
-		// 	fmt.Printf("%s: %s\n", Blue(k), v)
-		// }
-
 	}
 	fmt.Println(Green("Response:"))
 	for headerName, headerContext := range resp.Header {

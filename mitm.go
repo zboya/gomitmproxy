@@ -101,8 +101,14 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	req.Header.Del("Proxy-Connection")
 	req.Header.Set("Connection", "Keep-Alive")
 
+	var reqDump []byte
+	var err error
+	ch := make(chan bool)
 	// handle connection
-	reqDump, err := httputil.DumpRequest(req, true)
+	go func() {
+		reqDump, err = httputil.DumpRequestOut(req, true)
+		ch <- true
+	}()
 	if err != nil {
 		logger.Println("DumpRequest error ", err)
 	}
@@ -177,7 +183,10 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	}
 
 	if *hw.MyConfig.Monitor {
+		<-ch
 		go httpDump(reqDump, respOut)
+	} else {
+		<-ch
 	}
 
 }
