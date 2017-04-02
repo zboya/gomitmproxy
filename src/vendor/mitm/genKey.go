@@ -1,5 +1,5 @@
 // Package keyman provides convenience APIs around Go's built-in crypto APIs.
-package main
+package mitm
 
 import (
 	"crypto/rand"
@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"mylog"
 	"net"
 	"os"
 	"time"
@@ -85,7 +86,7 @@ func (key *PrivateKey) WriteToFile(filename string) (err error) {
 		return fmt.Errorf("Unable to PEM encode private key: %s", err)
 	}
 	if err := keyOut.Close(); err != nil {
-		logger.Printf("Unable to close file: %v", err)
+		mylog.Printf("Unable to close file: %v", err)
 	}
 	return
 }
@@ -236,7 +237,7 @@ func (cert *Certificate) WriteToFile(filename string) (err error) {
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			logger.Printf("Unable to close file: %v", err)
+			mylog.Printf("Unable to close file: %v", err)
 		}
 	}()
 	return pem.Encode(certOut, cert.pemBlock())
@@ -264,7 +265,7 @@ func (cert *Certificate) WriteToDERFile(filename string) (err error) {
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			logger.Printf("Unable to close file: %v", err)
+			mylog.Printf("Unable to close file: %v", err)
 		}
 	}()
 	_, err = certOut.Write(cert.derBytes)

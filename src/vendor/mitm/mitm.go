@@ -1,12 +1,14 @@
-package main
+package mitm
 
 import (
 	"bufio"
+	"config"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
 	"log"
+	"mylog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -17,9 +19,17 @@ import (
 	"time"
 )
 
+const (
+	Version   = "1.1"
+	ONE_DAY   = 24 * time.Hour
+	TWO_WEEKS = ONE_DAY * 14
+	ONE_MONTH = 1
+	ONE_YEAR  = 1
+)
+
 type HandlerWrapper struct {
-	MyConfig        *Cfg
-	tlsConfig       *TlsConfig
+	MyConfig        *config.Cfg
+	tlsConfig       *config.TlsConfig
 	wrapped         http.Handler
 	pk              *PrivateKey
 	pkPem           []byte
@@ -100,11 +110,20 @@ func (hw *HandlerWrapper) FakeCertForName(name string) (cert *tls.Certificate, e
 func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.Request) {
 	req.Header.Del("Proxy-Connection")
 	req.Header.Set("Connection", "Keep-Alive")
-
+	var reqDump []byte
+	var err error
+	ch := make(chan bool)
 	// handle connection
+	go func() {
+		reqDump, err = httputil.DumpRequestOut(req, true)
+		ch <- true
+	}()
+	if err != nil {
+		mylog.Println("DumpRequest error ", err)
+	}
 	connIn, _, err := resp.(http.Hijacker).Hijack()
 	if err != nil {
-		logger.Println("hijack error:", err)
+		mylog.Println("hijack error:", err)
 	}
 	defer connIn.Close()
 
@@ -120,18 +139,20 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 
 		connOut, err := net.DialTimeout("tcp", host, time.Second*30)
 		if err != nil {
-			logger.Println("dial to", host, "error:", err)
+
+			mylog.Println("dial to", host, "error:", err)
 			return
 		}
 
 		if err = req.Write(connOut); err != nil {
-			logger.Println("send to server error", err)
+
+			mylog.Println("send to server error", err)
 			return
 		}
 
 		respOut, err = http.ReadResponse(bufio.NewReader(connOut), req)
 		if err != nil && err != io.EOF {
-			logger.Println("read response error:", err)
+			mylog.Println("read response error:", err)
 		}
 
 	} else {
@@ -140,19 +161,21 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 		}
 
 		connOut, err := tls.Dial("tcp", host, hw.tlsConfig.ServerTLSConfig)
-
 		if err != nil {
-			logger.Panicln("tls dial to", host, "error:", err)
+
+		}
+		if err = req.Write(connOut); err != nil {
+			mylog.Println("tls dial to", host, "error:", err)
 			return
 		}
 		if err = req.Write(connOut); err != nil {
-			logger.Println("send to server error", err)
+			mylog.Println("send to server error", err)
 			return
 		}
 
 		respOut, err = http.ReadResponse(bufio.NewReader(connOut), req)
 		if err != nil && err != io.EOF {
-			logger.Println("read response error:", err)
+			mylog.Println("read response error:", err)
 		}
 
 	}
@@ -164,18 +187,20 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 
 	respDump, err := httputil.DumpResponse(respOut, true)
 	if err != nil {
-		logger.Println("respDump error:", err)
+		mylog.Println("respDump error:", err)
 	}
 
 	_, err = connIn.Write(respDump)
 	if err != nil {
-		logger.Println("connIn write error:", err)
+		mylog.Println("connIn write error:", err)
 	}
 
 	if *hw.MyConfig.Monitor {
-		go httpDump(req, respOut)
+		<-ch
+		go httpDump(reqDump, respOut)
+	} else {
+		<-ch
 	}
-
 }
 
 func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -226,7 +251,7 @@ func (hw *HandlerWrapper) InterceptHTTPs(resp http.ResponseWriter, req *http.Req
 	go func() {
 		err = http.Serve(listener, handler)
 		if err != nil && err != io.EOF {
-			logger.Printf("Error serving mitm'ed connection: %s", err)
+			mylog.Printf("Error serving mitm'ed connection: %s", err)
 		}
 	}()
 
@@ -237,12 +262,12 @@ func (hw *HandlerWrapper) Forward(resp http.ResponseWriter, req *http.Request, r
 	connIn, _, err := resp.(http.Hijacker).Hijack()
 	connOut, err := net.Dial("tcp", raddr)
 	if err != nil {
-		logger.Println("dial tcp error", err)
+		mylog.Println("dial tcp error", err)
 	}
 
 	err = connectProxyServer(connOut, raddr)
 	if err != nil {
-		logger.Println("connectProxyServer error:", err)
+		mylog.Println("connectProxyServer error:", err)
 	}
 
 	if req.Method == "CONNECT" {
@@ -250,24 +275,24 @@ func (hw *HandlerWrapper) Forward(resp http.ResponseWriter, req *http.Request, r
 			"Proxy-Agent: gomitmproxy/" + Version + "\r\n\r\n")
 		_, err := connIn.Write(b)
 		if err != nil {
-			logger.Println("Write Connect err:", err)
+			mylog.Println("Write Connect err:", err)
 			return
 		}
 	} else {
 		req.Header.Del("Proxy-Connection")
 		req.Header.Set("Connection", "Keep-Alive")
 		if err = req.Write(connOut); err != nil {
-			logger.Println("send to server err", err)
+			mylog.Println("send to server err", err)
 			return
 		}
 	}
 	err = Transport(connIn, connOut)
 	if err != nil {
-		log.Println("trans error ", err)
+		mylog.Println("trans error ", err)
 	}
 }
 
-func InitConfig(conf *Cfg, tlsConfig *TlsConfig) (*HandlerWrapper, error) {
+func InitConfig(conf *config.Cfg, tlsConfig *config.TlsConfig) (*HandlerWrapper, error) {
 	hw := &HandlerWrapper{
 		MyConfig:     conf,
 		tlsConfig:    tlsConfig,
@@ -286,6 +311,14 @@ func copyTlsConfig(template *tls.Config) *tls.Config {
 		*tlsConfig = *template
 	}
 	return tlsConfig
+}
+
+func copyHTTPRequest(template *http.Request) *http.Request {
+	req := &http.Request{}
+	if template != nil {
+		*req = *template
+	}
+	return req
 }
 
 func respBadGateway(resp http.ResponseWriter, msg string) {
@@ -316,7 +349,6 @@ func MyCopy(src io.Reader, dst io.Writer, ch chan<- error) {
 }
 
 func connectProxyServer(conn net.Conn, addr string) error {
-
 	req := &http.Request{
 		Method:     "CONNECT",
 		URL:        &url.URL{Host: addr},
@@ -340,3 +372,22 @@ func connectProxyServer(conn net.Conn, addr string) error {
 	}
 	return nil
 }
+
+/*func ReadNotDrain(r *http.Request) (content []byte, err error) {
+	content, err = ioutil.ReadAll(r.Body)
+	r.Body = io.ReadCloser(bytes.NewBuffer(content))
+	return
+}
+
+func ParsePostValues(req *http.Request) (url.Values, error) {
+	c, err := ReadNotDrain(req)
+	if err != nil {
+		return nil, err
+	}
+	values, err := url.ParseQuery(string(c))
+	if err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+*/

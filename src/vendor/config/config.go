@@ -1,16 +1,6 @@
-package main
+package config
 
-import (
-	"crypto/tls"
-	"time"
-)
-
-const (
-	ONE_DAY   = 24 * time.Hour
-	TWO_WEEKS = ONE_DAY * 14
-	ONE_MONTH = 1
-	ONE_YEAR  = 1
-)
+import "crypto/tls"
 
 type Cfg struct {
 	Port    *string
