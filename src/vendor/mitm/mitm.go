@@ -110,13 +110,17 @@ func (hw *HandlerWrapper) FakeCertForName(name string) (cert *tls.Certificate, e
 func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.Request) {
 	req.Header.Del("Proxy-Connection")
 	req.Header.Set("Connection", "Keep-Alive")
-	reqTmp := copyHTTPRequest(req)
-	err := reqTmp.ParseForm()
-
-	if err != nil {
-		mylog.Println("parseForm error:", err)
-	}
+	var reqDump []byte
+	var err error
+	ch := make(chan bool)
 	// handle connection
+	go func() {
+		reqDump, err = httputil.DumpRequestOut(req, true)
+		ch <- true
+	}()
+	if err != nil {
+		mylog.Println("DumpRequest error ", err)
+	}
 	connIn, _, err := resp.(http.Hijacker).Hijack()
 	if err != nil {
 		mylog.Println("hijack error:", err)
@@ -155,9 +159,8 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 		}
 
 		connOut, err := tls.Dial("tcp", host, hw.tlsConfig.ServerTLSConfig)
-
 		if err != nil {
-			mylog.Panicln("tls dial to", host, "error:", err)
+			mylog.Println("tls dial to", host, "error:", err)
 			return
 		}
 		if err = req.Write(connOut); err != nil {
@@ -188,7 +191,10 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 	}
 
 	if *hw.MyConfig.Monitor {
-		go httpDump(reqTmp, respOut)
+		<-ch
+		go httpDump(reqDump, respOut)
+	} else {
+		<-ch
 	}
 }
 
@@ -361,3 +367,22 @@ func connectProxyServer(conn net.Conn, addr string) error {
 	}
 	return nil
 }
+
+/*func ReadNotDrain(r *http.Request) (content []byte, err error) {
+	content, err = ioutil.ReadAll(r.Body)
+	r.Body = io.ReadCloser(bytes.NewBuffer(content))
+	return
+}
+
+func ParsePostValues(req *http.Request) (url.Values, error) {
+	c, err := ReadNotDrain(req)
+	if err != nil {
+		return nil, err
+	}
+	values, err := url.ParseQuery(string(c))
+	if err != nil {
+		return nil, err
+	}
+	return values, nil
+}
+*/

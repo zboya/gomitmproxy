@@ -7,6 +7,7 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"mylog"
@@ -14,7 +15,7 @@ import (
 	"strconv"
 )
 
-func httpDump(req *http.Request, resp *http.Response) {
+func httpDump(reqDump []byte, resp *http.Response) {
 	defer resp.Body.Close()
 	var respStatusStr string
 	respStatus := resp.StatusCode
@@ -29,18 +30,25 @@ func httpDump(req *http.Request, resp *http.Response) {
 	case 5:
 		respStatusStr = color.Red("<--" + strconv.Itoa(respStatus))
 	}
-	fmt.Println(color.Green("Request:"))
-	fmt.Printf("%s %s %s\n", color.Blue(req.Method), req.RequestURI, respStatusStr)
+
+	fmt.Println(color.Green("Request:"), respStatusStr)
+	req, _ := ParseReq(reqDump)
+	fmt.Printf("%s %s %s\n", color.Blue(req.Method), req.Host+req.RequestURI, respStatusStr)
+	fmt.Printf("%s %s\n", color.Blue("RemoteAddr:"), req.RemoteAddr)
 	for headerName, headerContext := range req.Header {
 		fmt.Printf("%s: %s\n", color.Blue(headerName), headerContext)
 	}
+
 	if req.Method == "POST" {
-		fmt.Println(color.Green("URLEncoded form"))
-
-		for k, v := range req.Form {
-			fmt.Printf("%s: %s\n", color.Blue(k), v)
+		fmt.Println(color.Green("POST Param:"))
+		err := req.ParseForm()
+		if err != nil {
+			mylog.Println("parseForm error:", err)
+		} else {
+			for k, v := range req.Form {
+				fmt.Printf("\t%s: %s\n", color.Blue(k), v)
+			}
 		}
-
 	}
 	fmt.Println(color.Green("Response:"))
 	for headerName, headerContext := range resp.Header {
@@ -78,4 +86,15 @@ func httpDump(req *http.Request, resp *http.Response) {
 	}
 
 	fmt.Printf("%s%s%s\n", color.Black("####################"), color.Cyan("END"), color.Black("####################"))
+}
+
+func ParseReq(b []byte) (*http.Request, error) {
+	// func ReadRequest(b *bufio.Reader) (req *Request, err error) { return readRequest(b, deleteHostHeader) }
+	fmt.Println(string(b))
+	fmt.Println("-----------------------")
+	var buf io.ReadWriter
+	buf = new(bytes.Buffer)
+	buf.Write(b)
+	bufr := bufio.NewReader(buf)
+	return http.ReadRequest(bufr)
 }
