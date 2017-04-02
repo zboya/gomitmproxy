@@ -1,6 +1,6 @@
 // package cache implements a really primitive cache that associates expiring
 // values with string keys.  This cache never clears itself out.
-package main
+package mitm
 
 import (
 	"sync"

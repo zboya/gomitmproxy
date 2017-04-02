@@ -1,13 +1,15 @@
-package main
+package mitm
 
 import (
 	"bufio"
 	"bytes"
+	"color"
 	"compress/flate"
 	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"math"
+	"mylog"
 	"net/http"
 	"strconv"
 )
@@ -19,35 +21,35 @@ func httpDump(req *http.Request, resp *http.Response) {
 	respStatusHeader := int(math.Floor(float64(respStatus / 100)))
 	switch respStatusHeader {
 	case 2:
-		respStatusStr = Green("<--" + strconv.Itoa(respStatus))
+		respStatusStr = color.Green("<--" + strconv.Itoa(respStatus))
 	case 3:
-		respStatusStr = Yellow("<--" + strconv.Itoa(respStatus))
+		respStatusStr = color.Yellow("<--" + strconv.Itoa(respStatus))
 	case 4:
-		respStatusStr = Magenta("<--" + strconv.Itoa(respStatus))
+		respStatusStr = color.Magenta("<--" + strconv.Itoa(respStatus))
 	case 5:
-		respStatusStr = Red("<--" + strconv.Itoa(respStatus))
+		respStatusStr = color.Red("<--" + strconv.Itoa(respStatus))
 	}
-	fmt.Println(Green("Request:"))
-	fmt.Printf("%s %s %s\n", Blue(req.Method), req.RequestURI, respStatusStr)
+	fmt.Println(color.Green("Request:"))
+	fmt.Printf("%s %s %s\n", color.Blue(req.Method), req.RequestURI, respStatusStr)
 	for headerName, headerContext := range req.Header {
-		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
+		fmt.Printf("%s: %s\n", color.Blue(headerName), headerContext)
 	}
 	if req.Method == "POST" {
-		fmt.Println(Green("URLEncoded form"))
+		fmt.Println(color.Green("URLEncoded form"))
 
 		for k, v := range req.Form {
-			fmt.Printf("%s: %s\n", Blue(k), v)
+			fmt.Printf("%s: %s\n", color.Blue(k), v)
 		}
 
 	}
-	fmt.Println(Green("Response:"))
+	fmt.Println(color.Green("Response:"))
 	for headerName, headerContext := range resp.Header {
-		fmt.Printf("%s: %s\n", Blue(headerName), headerContext)
+		fmt.Printf("%s: %s\n", color.Blue(headerName), headerContext)
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		logger.Println("func httpDump read resp body err:", err)
+		mylog.Println("func httpDump read resp body err:", err)
 	} else {
 		acceptEncode := resp.Header["Content-Encoding"]
 		var respBodyBin bytes.Buffer
@@ -59,7 +61,7 @@ func httpDump(req *http.Request, resp *http.Response) {
 			case "gzip":
 				r, err := gzip.NewReader(&respBodyBin)
 				if err != nil {
-					logger.Println("gzip reader err:", err)
+					mylog.Println("gzip reader err:", err)
 				} else {
 					defer r.Close()
 					respBody, _ = ioutil.ReadAll(r)
@@ -75,5 +77,5 @@ func httpDump(req *http.Request, resp *http.Response) {
 		fmt.Printf("%s\n", string(respBody))
 	}
 
-	fmt.Printf("%s%s%s\n", Black("####################"), Cyan("END"), Black("####################"))
+	fmt.Printf("%s%s%s\n", color.Black("####################"), color.Cyan("END"), color.Black("####################"))
 }

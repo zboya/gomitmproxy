@@ -1,4 +1,4 @@
-package main
+package mitm
 
 import (
 	"io"
