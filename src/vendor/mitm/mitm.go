@@ -139,13 +139,11 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 
 		connOut, err := net.DialTimeout("tcp", host, time.Second*30)
 		if err != nil {
-
 			mylog.Println("dial to", host, "error:", err)
 			return
 		}
 
 		if err = req.Write(connOut); err != nil {
-
 			mylog.Println("send to server error", err)
 			return
 		}
@@ -204,7 +202,6 @@ func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.R
 }
 
 func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-
 	raddr := *hw.MyConfig.Raddr
 	if len(raddr) != 0 {
 		hw.Forward(resp, req, raddr)

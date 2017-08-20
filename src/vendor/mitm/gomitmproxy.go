@@ -11,9 +11,7 @@ import (
 	"time"
 )
 
-func Gomitmproxy(conf *config.Cfg, wg *sync.WaitGroup) {
-	tlsConfig := config.NewTlsConfig("gomitmproxy-ca-pk.pem", "gomitmproxy-ca-cert.pem", "", "")
-
+func Gomitmproxy(conf *config.Cfg, tlsConfig *config.TlsConfig, wg *sync.WaitGroup) {
 	handler, err := InitConfig(conf, tlsConfig)
 	if err != nil {
 		mylog.Fatalf("InitConfig error: %s", err)
@@ -40,7 +38,6 @@ func Gomitmproxy(conf *config.Cfg, wg *sync.WaitGroup) {
 		}
 
 		wg.Done()
-
 		mylog.Printf("Gomitmproxy Stop!!!!")
 	}()
 

@@ -20,22 +20,25 @@ func main() {
 	conf.Log = flag.String("logFile", "", "log file path")
 	conf.Monitor = flag.Bool("m", false, "monitor mode")
 	conf.Tls = flag.Bool("tls", false, "tls connect")
+
 	flag.Parse()
 
 	// init log
 	if *conf.Log != "" {
 		log, err = os.Create(*conf.Log)
 		if err != nil {
-			mylog.Fatalln("fail to create log file!")
+			mylog.Fatalln("fail to create log file " + err.Error())
 		}
 	} else {
 		log = os.Stderr
 	}
 	mylog.SetLog(log)
 
+	// init tls config
+	tlsConfig := config.NewTlsConfig("gomitmproxy-ca-pk.pem", "gomitmproxy-ca-cert.pem", "", "")
 	// start mitm proxy
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
-	mitm.Gomitmproxy(conf, wg)
+	mitm.Gomitmproxy(conf, tlsConfig, wg)
 	wg.Wait()
 }
