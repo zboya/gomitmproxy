@@ -269,7 +269,8 @@ func (hw *HandlerWrapper) Forward(resp http.ResponseWriter, req *http.Request, r
 
 	if req.Method == "CONNECT" {
 		b := []byte("HTTP/1.1 200 Connection Established\r\n" +
-			"Proxy-Agent: gomitmproxy/" + Version + "\r\n\r\n")
+			"Proxy-Agent: gomitmproxy/" + Version + "\r\n" +
+			"Content-Length: 0" + "\r\n\r\n")
 		_, err := connIn.Write(b)
 		if err != nil {
 			mylog.Println("Write Connect err:", err)

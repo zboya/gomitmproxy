@@ -40,7 +40,7 @@ gomitmproxy
 gomitmproxy -m 
 ```
 
-![fetch http](https://raw.githubusercontent.com/sheepbao/gomitmproxy/master/src/doc/goproxy.png)
+![fetch http](https://raw.githubusercontent.com/sheepbao/gomitmproxy/master/doc/goproxy.png)
 
 加 -m 参数，表示抓取http请求和响应
 
@@ -59,7 +59,7 @@ gomitmproxy -m
 ```
 然后浏览器设置代理，ip为localhost，端口为8080,即可实现科学上网
 
-![proxy](https://raw.githubusercontent.com/sheepbao/gomitmproxy/master/src/doc/proxy.png) 
+![proxy](https://raw.githubusercontent.com/sheepbao/gomitmproxy/master/doc/proxy.png) 
 
 ## 最后
 
