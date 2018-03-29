@@ -5,6 +5,10 @@ import "io"
 
 var logger *log.Logger
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
 func SetLog(l io.WriteCloser) {
 	logger = log.New(l, "[gomitmproxy]", log.LstdFlags)
 }

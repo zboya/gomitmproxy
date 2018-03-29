@@ -108,6 +108,7 @@ func (hw *HandlerWrapper) FakeCertForName(name string) (cert *tls.Certificate, e
 }
 
 func (hw *HandlerWrapper) DumpHTTPAndHTTPs(resp http.ResponseWriter, req *http.Request) {
+	mylog.Println("DumpHTTPAndHTTPs")
 	req.Header.Del("Proxy-Connection")
 	req.Header.Set("Connection", "Keep-Alive")
 	var reqDump []byte
@@ -217,6 +218,7 @@ func (hw *HandlerWrapper) ServeHTTP(resp http.ResponseWriter, req *http.Request)
 }
 
 func (hw *HandlerWrapper) InterceptHTTPs(resp http.ResponseWriter, req *http.Request) {
+	mylog.Println("InterceptHTTPs")
 	addr := req.Host
 	host := strings.Split(addr, ":")[0]
 
